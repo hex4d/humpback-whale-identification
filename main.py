@@ -12,11 +12,10 @@ train_dir=os.path.join(base_dir, 'train')
 validation_dir=os.path.join(base_dir, 'validation')
 
 # paramater
-input_size=225
+input_size=128
 batch_size=20
 SEED=1470
 epochs=5
-validation_split=0.1
 
 def load_data():
     datagen = ImageDataGenerator(
@@ -37,7 +36,7 @@ def load_data():
     val_generator = datagen.flow_from_directory(
         validation_dir,
         target_size=(input_size, input_size),
-        batch_size=2,
+        batch_size=20,
         seed=SEED,
         class_mode='categorical',
     )
@@ -69,8 +68,8 @@ df.to_csv('train_classes.cls')
 
 model = vgg_cnn_model(input_size, len(classes))
 
-# model.fit_generator(train_generator, steps_per_epoch=2, epochs=epochs, validation_data=val_generator, validation_steps=50)
-model.fit_generator(train_generator, steps_per_epoch=2, epochs=epochs)
+model.fit_generator(train_generator, steps_per_epoch=len(train_generator), epochs=epochs, validation_data=val_generator, validation_steps=50)
+# model.fit_generator(train_generator, steps_per_epoch=2, epochs=epochs)
 
 model_path = 'models/'
 if not os.path.exists(model_path):

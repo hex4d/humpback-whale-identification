@@ -18,12 +18,14 @@ def download():
     os.chdir('data')
     if not os.path.exists('train.zip'):
         subprocess.call(['kaggle', 'competitions', 'download', '-c', 'humpback-whale-identification'])
-    shutil.rmtree('test')
+    if os.path.exists('test'):
+        shutil.rmtree('test')
     os.mkdir('test')
     os.chdir('test')
     subprocess.call(['unzip', '../test.zip', '-d', '0'])
     os.chdir('../')
     subprocess.call(['unzip', 'train.zip', '-d', 'train'])
+    os.chdir('../')
 
 def train_validation_split(class_list, validation_split):
     # 5 class 未満は全てtrain

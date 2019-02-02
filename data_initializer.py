@@ -24,11 +24,16 @@ def download():
     os.chdir('test')
     subprocess.call(['unzip', '../test.zip', '-d', '0'])
     os.chdir('../')
+    if os.path.exists('train'):
+        shutil.rmtree('train')
     subprocess.call(['unzip', 'train.zip', '-d', 'train'])
+    if os.path.exists('validation'):
+        shutil.rmtree('validation')
+    os.mkdir('validation')
     os.chdir('../')
 
 def train_validation_split(class_list, validation_split):
-    # 5 class 未満は全てtrain
+    # 5class 未満は全てtrain
     class_count = class_list.count()[0]
     if class_count < CLASS_COUNT_LIMIT:
         return class_list, pd.DataFrame(columns=class_list.columns)
@@ -60,13 +65,17 @@ def initialize_train_validation(clean = False):
         os.mkdir(VALIDATION_DIR)
     for i, v in class_value_counts.iterrows():
         class_name = v[0]
+        class_files_list = classes[classes['Id'] == class_name]
+        # define class
+        # class known whale and new whale
+        if class_name != 'new_whale':
+            class_name = 'known_whale'
         train_output_dir = os.path.join(TRAIN_DIR, class_name)
         if not os.path.exists(train_output_dir):
             os.mkdir(train_output_dir)
         validation_output_dir = os.path.join(VALIDATION_DIR, class_name)
         if not os.path.exists(validation_output_dir):
             os.mkdir(validation_output_dir)
-        class_files_list = classes[classes['Id'] == class_name]
         train_list, validation_list = train_validation_split(class_files_list, VALIDATION_SPLIT)
         [shutil.move(os.path.join(TRAIN_DIR, x[1]['Image']), validation_output_dir) for x in validation_list.iterrows()]
         [shutil.move(os.path.join(TRAIN_DIR, x[1]['Image']), train_output_dir) for x in train_list.iterrows()]

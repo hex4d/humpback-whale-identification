@@ -87,6 +87,3 @@ train_generator = load_data()
 submit = predict(new_known_model, classify_model, test_generator, steps=len(test_generator))
 
 submit.to_csv('submit.csv', index=False)
-
-
-

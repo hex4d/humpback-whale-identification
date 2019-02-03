@@ -68,8 +68,8 @@ def initialize_train_validation(clean = False):
         class_files_list = classes[classes['Id'] == class_name]
         # define class
         # class known whale and new whale
-        if class_name != 'new_whale':
-            class_name = 'known_whale'
+        # if class_name != 'new_whale':
+        #     class_name = 'known_whale'
         train_output_dir = os.path.join(TRAIN_DIR, class_name)
         if not os.path.exists(train_output_dir):
             os.mkdir(train_output_dir)
@@ -82,6 +82,6 @@ def initialize_train_validation(clean = False):
 
 
 download()
-initialize_train_validation(False)
+initialize_train_validation(True)
 
 assert(len(os.listdir('./data/validation')) == len(os.listdir('./data/train')))

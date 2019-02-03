@@ -38,5 +38,12 @@ classify_model.summary()
 test_generator = load_test_data()
 
 test_generator.reset()
-pred = new_known_model.predict_generator(test_generator, steps=len(test_generator),verbose=1)
-pred = classify_model(test_generator, verbose=1)
+pred_new = new_known_model.predict_generator(test_generator, steps=len(test_generator),verbose=1)
+pred_class = classify_model.predict_generator(test_generator, steps=len(test_generator),verbose=1)
+
+kth = 5
+pred_index = np.argpartition(-pred, kth)[:, :kth]
+pred_value = np.take(pred[:], np.argpartition(-pred, kth)[:, :kth])
+
+tesi = np.array([[3,5,1,5,2],[5,3,1,2,3],[5,6,7,3,4]])
+tesi_index = np.argpartition(-tesi, 3)[:, :3]

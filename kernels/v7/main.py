@@ -34,6 +34,10 @@ def split_with_class_count(df, validation_split=0.1, class_count=1):
     classes = fdf['Id'].unique()
     train_df = pd.DataFrame(columns=fdf.columns)
     validation_df = pd.DataFrame(columns=fdf.columns)
+    # TODO
+    # val classes may less than train classes
+    # this case train classes has 5004 class but val classes has only 8 classes.
+    # regularize is needed.
     for val_class in classes:
       class_df = fdf[fdf.Id == val_class]
       validation = class_df.sample(frac=validation_split, random_state=SEED)
@@ -111,7 +115,7 @@ class ModelV7():
         return model
 
 if __name__ == '__main__':
-    epochs = 10
+    epochs = 1
     train_generator, val_generator = load_data()
     model_wrapper = ModelV7()
     model = model_wrapper.get_model()

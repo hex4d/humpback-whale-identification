@@ -29,16 +29,15 @@ validation_dir=os.path.join(base_dir, 'validation')
 def split_with_class_count(df, validation_split=0.1, class_count=1):
     df = pd.read_csv(os.path.join(base_dir, 'train.csv'))
     df = df[df.Id != 'new_whale']
+    classes = df['Id'].unique()
     df['count'] = df.groupby('Id')['Id'].transform('count')
     fdf = df[df['count'] >= 50]
-    classes = fdf['Id'].unique()
+    val_classes = fdf['Id'].unique()
     train_df = pd.DataFrame(columns=fdf.columns)
     validation_df = pd.DataFrame(columns=fdf.columns)
     # TODO
-    # val classes may less than train classes
-    # this case train classes has 5004 class but val classes has only 8 classes.
-    # regularize is needed.
-    for val_class in classes:
+    # check val classes and train classes is equal
+    for val_class in val_classes:
       class_df = fdf[fdf.Id == val_class]
       validation = class_df.sample(frac=validation_split, random_state=SEED)
       validation_df = pd.concat([validation_df, validation]) 
@@ -48,12 +47,13 @@ def split_with_class_count(df, validation_split=0.1, class_count=1):
     train_df = train_df.reset_index()
     validation_df = validation_df.drop('count', axis=1)
     validation_df = validation_df.reset_index()
-    return train_df, validation_df
+    print(classes)
+    return train_df, validation_df, classes.tolist()
 
 def load_data():
     df = pd.read_csv(os.path.join(base_dir, 'train.csv'))
     df = df[df.Id != 'new_whale'] # without new_whale
-    train_df, validation_df = split_with_class_count(df, validation_split=0.1, class_count=50)
+    train_df, validation_df, classes = split_with_class_count(df, validation_split=0.1, class_count=50)
     print(train_df)
     print(df)
     datagen = ImageDataGenerator(
@@ -72,6 +72,7 @@ def load_data():
         y_col='Id',
         target_size=(input_size, input_size),
         batch_size=batch_size,
+        classes=classes,
         seed=SEED,
     )
     datagen = ImageDataGenerator(
@@ -84,6 +85,7 @@ def load_data():
         y_col='Id', 
         target_size=(input_size, input_size),
         batch_size=20,
+        classes=classes,
         seed=SEED,
     )
     return train_generator, val_generator
@@ -115,7 +117,7 @@ class ModelV7():
         return model
 
 if __name__ == '__main__':
-    epochs = 1
+    epochs = 100
     train_generator, val_generator = load_data()
     model_wrapper = ModelV7()
     model = model_wrapper.get_model()

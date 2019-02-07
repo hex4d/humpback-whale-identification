@@ -4,7 +4,7 @@ import shutil
 import pandas as pd
 import glob
 
-CLASS_COUNT_LIMIT = 5
+CLASS_COUNT_LIMIT = 2
 VALIDATION_SPLIT = 0.1
 SEED = 1470
 
@@ -66,10 +66,6 @@ def initialize_train_validation(clean = False):
     for i, v in class_value_counts.iterrows():
         class_name = v[0]
         class_files_list = classes[classes['Id'] == class_name]
-        # define class
-        # class known whale and new whale
-        # if class_name != 'new_whale':
-        #     class_name = 'known_whale'
         train_output_dir = os.path.join(TRAIN_DIR, class_name)
         if not os.path.exists(train_output_dir):
             os.mkdir(train_output_dir)

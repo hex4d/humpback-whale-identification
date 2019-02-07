@@ -11,47 +11,53 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 
-base_dir='data'
-train_dir=os.path.join(base_dir, 'train')
-validation_dir=os.path.join(base_dir, 'validation')
-model_base_dir = 'models/'
+DATA_BASE_DIR='data'
+TRAIN_DIR=os.path.join(DATA_BASE_DIR, 'train')
+VALIDATION_DIR=os.path.join(DATA_BASE_DIR, 'validation')
+MODEL_BASE_DIR = 'models/'
 
 # paramater
-batch_size=20
+BATCH_SIZE=32
 SEED=1470
-epochs=5
+EPOCHS=50
+MODEL_ID = 0
+INPUT_SIZE = 224
 
-input_size = 224
 def get_model():
-    main_input = layers.Input(shape=(input_size, input_size, 3,))
     conv_base = resnet50.ResNet50(weights='imagenet',
                       include_top=False,
-                      input_shape=(input_size, input_size, 3))(main_input)
-    features = layers.GlobalAveragePooling2D()(conv_base)
-    features = layers.BatchNormalization()(features)
-    h1 = layers.Dense(2048, activation='relu')(features)
-    # new or known
-    h2_is_new = layers.Dense(512, activation='relu')(h1)
-    is_new_output = layers.Dense(1, activation='sigmoid', name='is_new_output')(h2_is_new)
-    # classify
-    h2_classify = layers.Dense(2048, activation='relu')(h1)
-    muled = layers.Concatenate()([is_new_output, h2_classify])
-    output = layers.Dense(5004, activation='softmax', name='output')(muled)
-    model = models.Model(inputs=[main_input], outputs=[is_new_output, output])
-    model.compile(optimizer=optimizers.SGD(lr=1e-4, momentum=0.9),
-                  loss={'is_new_output': 'binary_crossentropy', 'output' : 'categorical_crossentropy'},
-                        metrics=['accuracy'])
+                      input_shape=(INPUT_SIZE, INPUT_SIZE, 3))
+    for layer in conv_base.layers[:]:
+        if 'BatchNormalization' in str(layer):
+            layer.trainable = True
+        else:
+            layer.trainable = False
+    main_input = conv_base.input
+    embedding = conv_base.output
+    x = layers.GlobalAveragePooling2D()(embedding)
+    x = layers.Dense(2048, activation='relu')(x)
+    x = layers.BatchNormalization()(x)
+    x = layers.Dropout(0.5)(x)
+    x = layers.Dense(1, activation='sigmoid')(x)
+    model = models.Model(inputs=[main_input], outputs=[x])
+    model.compile(
+        loss='binary_crossentropy', optimizer='adam', metrics=['acc'])
     return model
 
 def load_data():
     datagen = ImageDataGenerator(
         rescale=1./255,
         horizontal_flip=True,
+        rotation_range=30,
+        width_shift_range=0.2,
+        height_shift_range=0.2,
+        shear_range=0.2,
+        brightness_range=[0.7, 1.0],
     )
     train_generator = datagen.flow_from_directory(
-        train_dir,
-        target_size=(input_size, input_size),
-        batch_size=batch_size,
+        TRAIN_DIR,
+        target_size=(INPUT_SIZE, INPUT_SIZE),
+        batch_size=BATCH_SIZE,
         seed=SEED,
         class_mode='categorical',
     )
@@ -59,8 +65,8 @@ def load_data():
         rescale=1./255,
     )
     val_generator = datagen.flow_from_directory(
-        validation_dir,
-        target_size=(input_size, input_size),
+        VALIDATION_DIR,
+        target_size=(INPUT_SIZE, INPUT_SIZE),
         batch_size=20,
         seed=SEED,
         class_mode='categorical',
@@ -69,23 +75,25 @@ def load_data():
 
 def batch_generator(generator):
     for x, y in generator:
-        yield x, [y[:,0], y[:,1:]]
+        yield x, [y[:,0], y[:,0:]]
 
 
 train_generator, val_generator = load_data()
 model = get_model()
 
-model_dir = os.path.join(model_base_dir, 'separate_dnn')
+model_dir = os.path.join(MODEL_BASE_DIR, 'new_whale' + str(MODEL_ID))
+
 os.makedirs(model_dir, exist_ok=True)
 
 model_checkpoint_path = os.path.join(model_dir, '{epoch:02d}-{loss:.2f}-{val_loss:.2f}.hdf5')
 model_checkpoint = ModelCheckpoint(model_checkpoint_path, monitor='val_acc', verbose=1, save_best_only=True)
 csv_log_path = os.path.join(model_dir, 'train.log')
 csv_logger = CSVLogger(csv_log_path)
-history = model.fit_generator(batch_generator(train_generator),
-                    steps_per_epoch=5,
-                    epochs=epochs,
-                    validation_data=batch_generator(val_generator),
+history = model.fit_generator(train_generator,
+                    steps_per_epoch=len(train_generator),
+                    epochs=EPOCHS,
+                    validation_data=val_generator,
                     validation_steps=50,
                     callbacks=[model_checkpoint, csv_logger]
                     )
+

@@ -126,7 +126,8 @@ def load_test_data():
     datagen = ImageDataGenerator(
         rescale=1./255,
     )
-    test_generator = datagen.flow_from_directory(
+    test_generator = datagen.flow_from_dataframe(
+        pd.DataFrame(os.listdir(test_dir),columns=['filename']),
         test_dir,
         target_size=(input_size, input_size),
         batch_size=1,

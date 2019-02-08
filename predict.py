@@ -69,10 +69,10 @@ def predict(model, generator):
     return submit
 
 # load models
-model = models.load_model('./21-0.73-2.66.hdf5')
+model = models.load_model('./kernels/v7/models/without_whalev7/56-4.45-3.24.hdf5')
 # load test data
 test_generator = load_test_data()
 # predict
 submit = predict(model, test_generator)
 
-submit.to_csv('submit2.csv', index=False)
+submit.to_csv('submit3.csv', index=False)

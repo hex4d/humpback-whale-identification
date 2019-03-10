@@ -4,7 +4,7 @@ from keras import models
 from keras import layers
 from keras import optimizers
 from keras.engine.topology import Input
-from keras.callbacks import ModelCheckpoint, CSVLogger, TensorBoard
+from keras.callbacks import ModelCheckpoint, CSVLogger, TensorBoard, ReduceLROnPlateau
 
 import os
 import matplotlib.pyplot as plt
@@ -150,14 +150,14 @@ def predict(model, generator):
     submit = pd.DataFrame(columns=['Image', 'Id'])
     for i, p in enumerate(best_5_pred):
         submit_classes = []
-        if p[0] < 0.65:
+        if p[0] < 0.55:
             submit_classes.append('new_whale')
             submit_classes.extend(classes[best_5_class[i]][0:4])
-        elif p[1] < 0.4 :
+        elif p[1] < 0.35 :
             submit_classes.extend(classes[best_5_class[i]][0:1])
             submit_classes.append('new_whale')
             submit_classes.extend(classes[best_5_class[i]][1:4])
-        elif p[2] < 0.2 :
+        elif p[2] < 0.1 :
             submit_classes.extend(classes[best_5_class[i]][0:2])
             submit_classes.append('new_whale')
             submit_classes.extend(classes[best_5_class[i]][2:4])
@@ -179,31 +179,31 @@ if __name__ == '__main__':
     print(args)
     if args.pred:
         # load models
-        model = models.load_model('./models/without_whalev14/59-4.29-4.44.hdf5')
+        model = models.load_model('./models/iterate_without_whalev14/338-2.37-2.80.hdf5')
         # load test data
         test_generator = load_test_data()
         # predict
         submit = predict(model, test_generator)
-        submit.to_csv('submit.csv', index=False)
+        submit.to_csv('submit2.csv', index=False)
     else:
-        epochs = 60
+        epochs = 50
         train_generator, val_generator = load_data()
         model_wrapper = ModelV14()
         model = model_wrapper.get_model()
         model.summary()
 
-        model_dir = os.path.join(model_base_dir, 'without_whale' + model_wrapper.name)
-
+        model_dir = os.path.join(model_base_dir, 'iterate_without_whale' + model_wrapper.name)
         os.makedirs(model_dir, exist_ok=True)
-
-        model_checkpoint_path = os.path.join(model_dir, '{epoch:02d}-{loss:.2f}-{val_loss:.2f}.hdf5')
-        model_checkpoint = ModelCheckpoint(model_checkpoint_path, monitor='val_acc', verbose=1, save_best_only=True)
-        tensor_board = TensorBoard(log_dir=os.path.join(model_dir))
-        history = model.fit_generator(
-            train_generator,
-            steps_per_epoch=len(train_generator),
-            epochs=epochs,
-            validation_data=val_generator,
-            validation_steps=50,
-            callbacks=[model_checkpoint, tensor_board],
-        )
+        for num in range(1, 4):
+            model_checkpoint_path = os.path.join(model_dir, str(num) + '{epoch:02d}-{loss:.2f}-{val_loss:.2f}.hdf5' )
+            model_checkpoint = ModelCheckpoint(model_checkpoint_path, monitor='val_acc', verbose=1, save_best_only=True)
+            tensor_board = TensorBoard(log_dir=os.path.join(model_dir))
+            reduce_lr = ReduceLROnPlateau(monitor='val_loss', patience=5, min_delta=0.1, factor=0.2, min_lr=0.0005, verbose=1)
+            history = model.fit_generator(
+                train_generator,
+                steps_per_epoch=len(train_generator),
+                epochs=epochs,
+                validation_data=val_generator,
+                validation_steps=50,
+                callbacks=[model_checkpoint, tensor_board, reduce_lr],
+            )
